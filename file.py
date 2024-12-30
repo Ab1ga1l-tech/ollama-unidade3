@@ -1,30 +1,39 @@
-import requests
 import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from langchain_community.embeddings import OllamaEmbeddings
 
-# URL da API do Ollama
-url = "http://localhost:11500/v1/models/llama2/embeddings"
+# Define os documentos
+documents = ["Sim.", "Professor.", "Salada.", "Oi."]
 
+# Define o modelo de embeddings
+try:
+    embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+except Exception as e:
+    print(f"Erro ao inicializar os embeddings: {e}")
+    raise
 
-# Texto simples para gerar embeddings
-text = "Esta é uma frase de exemplo para gerar embeddings."
+# Gera embeddings para os documentos
+try:
+    document_embeddings = embeddings.embed_documents(documents)
+    embedding_size = len(document_embeddings[0])
+    print(f"Tamanho dos embeddings: {embedding_size}")
+except Exception as e:
+    print(f"Erro ao gerar embeddings para os documentos: {e}")
+    raise
 
-# Função para gerar embeddings com Ollama
-def get_embeddings(text):
-    payload = {"text": text}
-    headers = {"Content-Type": "application/json"}
+# Consulta e similaridade
+query = "Uma profissão?"
+try:
+    query_embedding = embeddings.embed_query(query)
+    similarity_scores = cosine_similarity([query_embedding], document_embeddings)[0]
+    most_similar_index = np.argmax(similarity_scores)
+    most_similar_document = documents[most_similar_index]
 
-    # Requisição para a API do Ollama
-    response = requests.post(url, json=payload, headers=headers)
+    print(f"Documento mais similar à consulta '{query}': {most_similar_document}")
+except Exception as e:
+    print(f"Erro ao calcular similaridade: {e}")
+    raise
 
-    if response.status_code == 200:
-        # A resposta contém os embeddings em formato JSON
-        embeddings = response.json()['embedding']
-        return np.array(embeddings)
-    else:
-        raise Exception(f"Erro ao gerar embeddings: {response.status_code}, {response.text}")
-
-# Gerando os embeddings
-embeddings = get_embeddings(text)
 
 # Exibindo informações sobre os embeddings
 print(f"Embeddings gerados para o texto: '{text}'")
